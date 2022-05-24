@@ -1,5 +1,6 @@
 package com.example.trainningproject
 
+import android.graphics.Typeface
 import android.os.Bundle
 import android.speech.tts.TextToSpeech
 import android.util.Log
@@ -9,15 +10,15 @@ import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.Button
-import androidx.compose.material.OutlinedTextField
-import androidx.compose.material.Text
+import androidx.compose.material.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -25,6 +26,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.example.trainningproject.ui.MainViewModel
+import com.example.trainningproject.ui.theme.MyButton
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
@@ -93,6 +95,9 @@ fun MyScreen(viewModel: MainViewModel) {
             .fillMaxWidth()
             .wrapContentHeight()
     ) {
+        Card(modifier = Modifier.padding(top = 15.dp)) {
+            MyTitle(title = "Jetpack Demo")
+        }
         MyEditText(
             label = stringResource(id = R.string.title),
             message = viewModel.title,
@@ -104,17 +109,27 @@ fun MyScreen(viewModel: MainViewModel) {
         )
 
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .wrapContentHeight(),
-            horizontalArrangement = Arrangement.SpaceAround
+            horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            SubmitButton(title = "Speed") {
-                val mess = "${viewModel.title} ${viewModel.message}"
-                viewModel.speak(mess)
+            Row(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(5.dp)
+            ) {
+                SubmitButton(title = "Speed") {
+                    val mess = "${viewModel.title} ${viewModel.message}"
+                    viewModel.speak(mess)
+                }
             }
-            SubmitButton(title = "Change Language") {
-                viewModel.onLanguageChange()
+
+            Row(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(5.dp)
+            ) {
+                SubmitButton(title = "Change Language") {
+                    viewModel.onLanguageChange()
+                }
             }
         }
     }
@@ -149,7 +164,39 @@ fun SubmitButton(
     title: String,
     onClick: () -> Unit
 ) {
-    Button(onClick = onClick) {
+    Button(
+        modifier = Modifier.fillMaxWidth().padding(5.dp),
+        onClick = onClick,
+        colors = ButtonDefaults.buttonColors(
+            backgroundColor = MyButton,
+            contentColor = Color.White
+        ),
+        elevation = ButtonDefaults.elevation(
+            defaultElevation = 1.dp
+        ),
+    ) {
         Text(text = title)
     }
+}
+
+@Composable
+fun MyTitle(
+    title: String
+) {
+    Text(
+        modifier = Modifier.fillMaxWidth(),
+        text = title,
+        color = Color.Magenta,
+        fontFamily = FontFamily(
+            typeface = Typeface.DEFAULT_BOLD
+        ),
+        textAlign = TextAlign.Center,
+        fontSize = 30.sp
+    )
+}
+
+@Preview(showBackground = true)
+@Composable
+fun DefaultPreview() {
+    MyTitle("Xin chao")
 }
