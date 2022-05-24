@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">TrainningProject</string>
+    <string name="title">Title</string>
+    <string name="enter_message">Enter your message</string>
+</resources>
