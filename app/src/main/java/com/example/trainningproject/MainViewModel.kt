@@ -1,4 +1,4 @@
-package com.example.trainningproject.ui
+package com.example.trainningproject
 
 import android.speech.tts.TextToSpeech
 import androidx.compose.runtime.getValue
@@ -16,7 +16,7 @@ class MainViewModel : ViewModel() {
 
     var message by mutableStateOf("")
 
-    var language = MutableStateFlow<Locale>(Locale.US)
+    var isShow by mutableStateOf(false)
 
     private lateinit var textToSpeechEngine: TextToSpeech
 
@@ -36,13 +36,9 @@ class MainViewModel : ViewModel() {
         textToSpeechEngine.speak(mess, TextToSpeech.QUEUE_FLUSH, null, "")
     }
 
-    fun onLanguageChange() {
-        viewModelScope.launch {
-            language.value = if (language.value == Locale.US) {
-                Locale.getDefault()
-            } else {
-                Locale.US
-            }
-        }
+    fun showMessage(show: Boolean) {
+        isShow = show
     }
+
+
 }

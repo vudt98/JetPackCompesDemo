@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">TrainningProject</string>
+    <string name="content_1">Xin chào mọi người</string>
+    <string name="content_2">Đây là demo về jetpack compose</string>
+</resources>

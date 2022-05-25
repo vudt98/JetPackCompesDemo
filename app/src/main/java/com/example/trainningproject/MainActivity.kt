@@ -1,19 +1,25 @@
 package com.example.trainningproject
 
+import android.content.Context
 import android.graphics.Typeface
 import android.os.Bundle
 import android.speech.tts.TextToSpeech
+import android.text.TextUtils
 import android.util.Log
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.*
+import androidx.compose.material.Button
+import androidx.compose.material.ButtonDefaults
+import androidx.compose.material.OutlinedTextField
+import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
@@ -22,17 +28,19 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
-import com.example.trainningproject.ui.MainViewModel
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.rememberNavController
+import com.example.trainningproject.ui.theme.ColorMessage
 import com.example.trainningproject.ui.theme.MyButton
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.launch
+import com.example.trainningproject.utils.LocaleUtils
+import java.util.*
+
 
 class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
 
     private val viewModel: MainViewModel by viewModels()
+
+    lateinit var navController: NavHostController
 
     private val textToSpeech: TextToSpeech by lazy {
         TextToSpeech(this, this, TextToSpeech.Engine.EXTRA_SAMPLE_TEXT)
@@ -41,36 +49,27 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-            ) {
-                MyScreen(viewModel)
-            }
+            val content = LocalContext.current
+            changeLanguage(content, "en")
+
+            navController = rememberNavController()
+            SetupNavGraph(navHostController = navController, viewModel)
+
         }
 
         textToSpeech.let { viewModel.initial(it) }
 
-        lifecycleScope.launch {
-            repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.language.collectLatest {
-                    textToSpeech.language = it
-                    val result = textToSpeech.setLanguage(it)
-                    Toast.makeText(
-                        this@MainActivity,
-                        "${it.language} - $result",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-            }
-        }
+    }
+
+    private fun changeLanguage(context: Context, lang: String) {
+        LocaleUtils.setLocale(context, lang)
     }
 
     override fun onInit(status: Int) {
         if (status == TextToSpeech.SUCCESS) {
-            val result = textToSpeech.setLanguage(viewModel.language.value)
-            textToSpeech.setSpeechRate(0.8f)
-            textToSpeech.setPitch(1.3f)
+            val result = textToSpeech.setLanguage(Locale.US)
+            textToSpeech.setSpeechRate(1f)
+//            textToSpeech.setPitch(1.3f)
 
             if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
                 Log.e("Ahihi", "The Language not supported!")
@@ -88,48 +87,81 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
 }
 
 @Composable
-fun MyScreen(viewModel: MainViewModel) {
+fun MyScreen(viewModel: MainViewModel, navHostController: NavHostController) {
 
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .wrapContentHeight()
-    ) {
-        Card(modifier = Modifier.padding(top = 15.dp)) {
-            MyTitle(title = "Jetpack Demo")
-        }
-        MyEditText(
-            label = stringResource(id = R.string.title),
-            message = viewModel.title,
-            onMessageChange = { viewModel.onTitleChange(it) })
-        MyEditText(
-            label = stringResource(id = R.string.enter_message),
-            message = viewModel.message,
-            onMessageChange = { viewModel.onMessageChange(it) }
-        )
+    Box(modifier = Modifier.fillMaxSize()) {
 
-        Row(
-            horizontalArrangement = Arrangement.SpaceBetween,
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
         ) {
+            Row(modifier = Modifier.padding(top = 15.dp)) {
+                MyTitle(title = "Jetpack Demo")
+            }
+            MyEditText(
+                label = stringResource(id = R.string.content_1),
+                message = viewModel.title,
+                onMessageChange = { viewModel.onTitleChange(it) })
+            MyEditText(
+                label = stringResource(id = R.string.enter_message),
+                message = viewModel.message,
+                onMessageChange = { viewModel.onMessageChange(it) }
+            )
+
             Row(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(5.dp)
+                horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                SubmitButton(title = "Speed") {
-                    val mess = "${viewModel.title} ${viewModel.message}"
-                    viewModel.speak(mess)
+                Row(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(5.dp)
+                ) {
+                    SubmitButton(title = "Speed") {
+                        if (!TextUtils.isEmpty(viewModel.message) || !TextUtils.isEmpty(viewModel.title)) {
+                            viewModel.showMessage(true)
+                        }
+                        if (viewModel.isShow) {
+                            val mess = "${viewModel.title} ${viewModel.message}"
+                            viewModel.speak(mess)
+                        }
+                    }
+                }
+
+                Row(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(5.dp)
+                ) {
+                    SubmitButton(title = "Hide Message") {
+                        viewModel.showMessage(false)
+                    }
                 }
             }
 
-            Row(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(5.dp)
-            ) {
-                SubmitButton(title = "Change Language") {
-                    viewModel.onLanguageChange()
-                }
+        }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .wrapContentHeight()
+                .align(Alignment.Center),
+        ) {
+            ContentMessage(content = "${viewModel.title} ${viewModel.message}", viewModel.isShow)
+        }
+
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 15.dp),
+        ) {
+            Button(
+                colors = ButtonDefaults.buttonColors(
+                    contentColor = Color.White,
+                    backgroundColor = Color.Blue
+                ),
+                onClick = {
+                    navHostController.navigate(route = Screen.Second.passId(viewModel.message))
+                }) {
+                Text(text = "Open Second Screen")
             }
         }
     }
@@ -165,7 +197,9 @@ fun SubmitButton(
     onClick: () -> Unit
 ) {
     Button(
-        modifier = Modifier.fillMaxWidth().padding(5.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(5.dp),
         onClick = onClick,
         colors = ButtonDefaults.buttonColors(
             backgroundColor = MyButton,
@@ -195,8 +229,28 @@ fun MyTitle(
     )
 }
 
+@Composable
+fun ContentMessage(
+    content: String,
+    visibility: Boolean
+) {
+    if (visibility) {
+        Text(
+            modifier = Modifier.fillMaxWidth(),
+            text = content,
+            color = ColorMessage,
+            fontFamily = FontFamily(
+                typeface = Typeface.DEFAULT_BOLD
+            ),
+            textAlign = TextAlign.Center,
+            fontSize = 20.sp
+        )
+    }
+}
+
 @Preview(showBackground = true)
 @Composable
 fun DefaultPreview() {
-    MyTitle("Xin chao")
+    ContentMessage(content = "Ahihi", false)
+//    MyScreen(viewModel = MainViewModel())
 }

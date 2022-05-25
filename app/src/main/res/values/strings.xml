@@ -1,5 +1,7 @@
 <resources>
     <string name="app_name">TrainningProject</string>
-    <string name="title">Title</string>
-    <string name="enter_message">Enter your message</string>
+    <string name="title" translatable="false">Title</string>
+    <string name="enter_message" translatable="false">Enter your message</string>
+    <string name="content_1">Hello everyone.</string>
+    <string name="content_2">This is demo about jetpack compose</string>
 </resources>
