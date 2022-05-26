@@ -1,14 +1,11 @@
 package com.example.trainningproject
 
-import android.content.Context
 import android.graphics.Typeface
 import android.os.Bundle
-import android.speech.tts.TextToSpeech
 import android.text.TextUtils
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.viewModels
+import androidx.compose.animation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.Button
@@ -28,66 +25,36 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import com.example.trainningproject.ui.theme.ColorMessage
 import com.example.trainningproject.ui.theme.MyButton
 import com.example.trainningproject.utils.LocaleUtils
-import java.util.*
 
 
-class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
-
-    private val viewModel: MainViewModel by viewModels()
+class MainActivity : ComponentActivity() {
 
     lateinit var navController: NavHostController
-
-    private val textToSpeech: TextToSpeech by lazy {
-        TextToSpeech(this, this, TextToSpeech.Engine.EXTRA_SAMPLE_TEXT)
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            val content = LocalContext.current
-            changeLanguage(content, "en")
-
             navController = rememberNavController()
-            SetupNavGraph(navHostController = navController, viewModel)
-
+            SetupNavGraph(navHostController = navController)
         }
-
-        textToSpeech.let { viewModel.initial(it) }
-
-    }
-
-    private fun changeLanguage(context: Context, lang: String) {
-        LocaleUtils.setLocale(context, lang)
-    }
-
-    override fun onInit(status: Int) {
-        if (status == TextToSpeech.SUCCESS) {
-            val result = textToSpeech.setLanguage(Locale.US)
-            textToSpeech.setSpeechRate(1f)
-//            textToSpeech.setPitch(1.3f)
-
-            if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
-                Log.e("Ahihi", "The Language not supported!")
-            } else {
-                Log.e("Ahihi", "The Language supported!")
-            }
-        }
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        textToSpeech.stop()
-        textToSpeech.shutdown()
     }
 }
 
 @Composable
-fun MyScreen(viewModel: MainViewModel, navHostController: NavHostController) {
+fun MyScreen(navHostController: NavHostController) {
+    val viewModel: MainViewModel = viewModel()
+
+    val tts = TextToSpeedUtils.getInstance(LocalContext.current)
+
+    viewModel.initial(tts)
+
+    LocaleUtils.setLocale(LocalContext.current, viewModel.language)
 
     Box(modifier = Modifier.fillMaxSize()) {
 
@@ -95,11 +62,13 @@ fun MyScreen(viewModel: MainViewModel, navHostController: NavHostController) {
             modifier = Modifier
                 .fillMaxSize()
         ) {
-            Row(modifier = Modifier.padding(top = 15.dp)) {
-                MyTitle(title = "Jetpack Demo")
-            }
+            MyTitle(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 15.dp), title = "Jetpack Demo"
+            )
             MyEditText(
-                label = stringResource(id = R.string.content_1),
+                label = stringResource(id = R.string.title),
                 message = viewModel.title,
                 onMessageChange = { viewModel.onTitleChange(it) })
             MyEditText(
@@ -111,57 +80,92 @@ fun MyScreen(viewModel: MainViewModel, navHostController: NavHostController) {
             Row(
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                Row(
+
+                SubmitButton(
                     modifier = Modifier
+                        .fillMaxWidth()
                         .weight(1f)
-                        .padding(5.dp)
+                        .padding(5.dp),
+                    title = "Speed"
                 ) {
-                    SubmitButton(title = "Speed") {
-                        if (!TextUtils.isEmpty(viewModel.message) || !TextUtils.isEmpty(viewModel.title)) {
-                            viewModel.showMessage(true)
-                        }
-                        if (viewModel.isShow) {
-                            val mess = "${viewModel.title} ${viewModel.message}"
-                            viewModel.speak(mess)
-                        }
+                    if (!TextUtils.isEmpty(viewModel.message) || !TextUtils.isEmpty(viewModel.title)) {
+                        viewModel.showMessage(true)
+                    }
+                    if (viewModel.isShow) {
+                        val mess = "${viewModel.title} ${viewModel.message}"
+                        viewModel.speak(mess)
                     }
                 }
 
-                Row(
+
+                SubmitButton(
                     modifier = Modifier
+                        .fillMaxWidth()
                         .weight(1f)
-                        .padding(5.dp)
+                        .padding(5.dp),
+                    title = "Hide Message"
                 ) {
-                    SubmitButton(title = "Hide Message") {
-                        viewModel.showMessage(false)
-                    }
+                    viewModel.showMessage(false)
                 }
             }
 
         }
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .wrapContentHeight()
-                .align(Alignment.Center),
-        ) {
-            ContentMessage(content = "${viewModel.title} ${viewModel.message}", viewModel.isShow)
-        }
 
         Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.Center)
+        ) {
+            AnimatedVisibility(
+                visible = viewModel.isShow,
+                enter = fadeIn() + slideInVertically(),
+                exit = fadeOut() + slideOutVertically()
+            ) {
+                ContentMessage(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .wrapContentHeight(),
+                    content = "${viewModel.title} ${viewModel.message}",
+                    viewModel.isShow
+                )
+            }
+        }
+
+
+        Row(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(bottom = 15.dp),
         ) {
             Button(
+                modifier = Modifier
+                    .height(60.dp)
+                    .weight(1f)
+                    .padding(5.dp),
                 colors = ButtonDefaults.buttonColors(
                     contentColor = Color.White,
                     backgroundColor = Color.Blue
                 ),
                 onClick = {
+                    viewModel.setLanguageText("vi")
                     navHostController.navigate(route = Screen.Second.passId(viewModel.message))
                 }) {
-                Text(text = "Open Second Screen")
+                Text(text = "Load VN")
+            }
+            Button(
+                modifier = Modifier
+                    .height(60.dp)
+                    .weight(1f)
+                    .padding(5.dp),
+                colors = ButtonDefaults.buttonColors(
+                    contentColor = Color.White,
+                    backgroundColor = Color.Blue
+                ),
+                onClick = {
+                    viewModel.setLanguageText("en")
+                    navHostController.navigate(route = Screen.Second.passId(viewModel.message))
+                }) {
+                Text(text = "Load EN")
             }
         }
     }
@@ -193,13 +197,12 @@ fun MyEditText(
 
 @Composable
 fun SubmitButton(
+    modifier: Modifier,
     title: String,
     onClick: () -> Unit
 ) {
     Button(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(5.dp),
+        modifier = modifier,
         onClick = onClick,
         colors = ButtonDefaults.buttonColors(
             backgroundColor = MyButton,
@@ -215,10 +218,11 @@ fun SubmitButton(
 
 @Composable
 fun MyTitle(
+    modifier: Modifier,
     title: String
 ) {
     Text(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier,
         text = title,
         color = Color.Magenta,
         fontFamily = FontFamily(
@@ -231,12 +235,13 @@ fun MyTitle(
 
 @Composable
 fun ContentMessage(
+    modifier: Modifier,
     content: String,
     visibility: Boolean
 ) {
     if (visibility) {
         Text(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = modifier,
             text = content,
             color = ColorMessage,
             fontFamily = FontFamily(
@@ -251,6 +256,5 @@ fun ContentMessage(
 @Preview(showBackground = true)
 @Composable
 fun DefaultPreview() {
-    ContentMessage(content = "Ahihi", false)
-//    MyScreen(viewModel = MainViewModel())
+    MyScreen(navHostController = rememberNavController())
 }

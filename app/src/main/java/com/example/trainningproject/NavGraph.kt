@@ -9,13 +9,13 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 
 @Composable
-fun SetupNavGraph(navHostController: NavHostController, viewModel: MainViewModel) {
+fun SetupNavGraph(navHostController: NavHostController) {
 
     NavHost(navController = navHostController, startDestination = Screen.First.route) {
         composable(
             Screen.First.route
         ) {
-            MyScreen(viewModel = viewModel, navHostController)
+            MyScreen(navHostController)
         }
         composable(route = Screen.Second.route,
             arguments = listOf(navArgument(KEY_MESS) {
