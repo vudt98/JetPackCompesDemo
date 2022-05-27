@@ -19,14 +19,18 @@ class MainViewModel(
 ) : ViewModel() {
 
     var title by mutableStateOf("")
+        private set
 
     var message by mutableStateOf("")
+        private set
 
     var isShow by mutableStateOf(false)
+        private set
 
     var language by mutableStateOf("en")
+        private set
 
-    private lateinit var textToSpeechEngine: TextToSpeech
+    private var textToSpeechEngine: TextToSpeech? = null
 
     val data = flow {
         val data = savedStateHandle.get<String>("Language") ?: "en"
@@ -51,7 +55,7 @@ class MainViewModel(
     }
 
     fun speak(mess: String) = viewModelScope.launch {
-        textToSpeechEngine.speak(mess, TextToSpeech.QUEUE_FLUSH, null, "")
+        textToSpeechEngine?.speak(mess, TextToSpeech.QUEUE_FLUSH, null, "")
     }
 
     fun showMessage(show: Boolean) {
@@ -60,5 +64,14 @@ class MainViewModel(
 
     fun setLanguageText(lang: String) {
         language = lang
+    }
+
+    fun cancelTTS() {
+        textToSpeechEngine?.stop()
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        textToSpeechEngine = null
     }
 }

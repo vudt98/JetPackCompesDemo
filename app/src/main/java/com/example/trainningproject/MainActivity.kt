@@ -2,21 +2,26 @@ package com.example.trainningproject
 
 import android.graphics.Typeface
 import android.os.Bundle
+import android.speech.tts.TextToSpeech
 import android.text.TextUtils
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.*
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.Button
 import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.OutlinedTextField
 import androidx.compose.material.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
@@ -25,6 +30,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
@@ -50,17 +57,38 @@ class MainActivity : ComponentActivity() {
 fun MyScreen(navHostController: NavHostController) {
     val viewModel: MainViewModel = viewModel()
 
+    val lifecycleOwner = LocalLifecycleOwner.current
     val tts = TextToSpeedUtils.getInstance(LocalContext.current)
 
-    viewModel.initial(tts)
+    LaunchedEffect(key1 = tts, block = {
+        viewModel.initial(tts)
+    })
 
     LocaleUtils.setLocale(LocalContext.current, viewModel.language)
 
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_DESTROY) {
+                viewModel.cancelTTS()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
 
+        val scrollState = rememberScrollState()
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .scrollable(
+                    state = scrollState,
+                    orientation = Orientation.Vertical
+                ),
         ) {
             MyTitle(
                 modifier = Modifier
@@ -109,63 +137,63 @@ fun MyScreen(navHostController: NavHostController) {
                 }
             }
 
-        }
+            Spacer(modifier = Modifier.weight(1f))
 
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.Center)
-        ) {
-            AnimatedVisibility(
-                visible = viewModel.isShow,
-                enter = fadeIn() + slideInVertically(),
-                exit = fadeOut() + slideOutVertically()
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
             ) {
-                ContentMessage(
+                AnimatedVisibility(
+                    visible = viewModel.isShow,
+                    enter = fadeIn() + slideInVertically(),
+                    exit = fadeOut() + slideOutVertically()
+                ) {
+                    ContentMessage(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .wrapContentHeight(),
+                        content = "${viewModel.title} ${viewModel.message}",
+                        viewModel.isShow
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.weight(1f))
+            
+            Row(
+                modifier = Modifier
+                    .padding(bottom = 15.dp),
+            ) {
+                Button(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .wrapContentHeight(),
-                    content = "${viewModel.title} ${viewModel.message}",
-                    viewModel.isShow
-                )
-            }
-        }
-
-
-        Row(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = 15.dp),
-        ) {
-            Button(
-                modifier = Modifier
-                    .height(60.dp)
-                    .weight(1f)
-                    .padding(5.dp),
-                colors = ButtonDefaults.buttonColors(
-                    contentColor = Color.White,
-                    backgroundColor = Color.Blue
-                ),
-                onClick = {
-                    viewModel.setLanguageText("vi")
-                    navHostController.navigate(route = Screen.Second.passId(viewModel.message))
-                }) {
-                Text(text = "Load VN")
-            }
-            Button(
-                modifier = Modifier
-                    .height(60.dp)
-                    .weight(1f)
-                    .padding(5.dp),
-                colors = ButtonDefaults.buttonColors(
-                    contentColor = Color.White,
-                    backgroundColor = Color.Blue
-                ),
-                onClick = {
-                    viewModel.setLanguageText("en")
-                    navHostController.navigate(route = Screen.Second.passId(viewModel.message))
-                }) {
-                Text(text = "Load EN")
+                        .height(60.dp)
+                        .weight(1f)
+                        .padding(5.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        contentColor = Color.White,
+                        backgroundColor = Color.Blue
+                    ),
+                    onClick = {
+                        viewModel.setLanguageText("vi")
+                        navHostController.navigate(route = Screen.Second.passId(viewModel.message))
+                    }) {
+                    Text(text = "Load VN")
+                }
+                Button(
+                    modifier = Modifier
+                        .height(60.dp)
+                        .weight(1f)
+                        .padding(5.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        contentColor = Color.White,
+                        backgroundColor = Color.Blue
+                    ),
+                    onClick = {
+                        viewModel.setLanguageText("en")
+                        navHostController.navigate(route = Screen.Second.passId(viewModel.message))
+                    }) {
+                    Text(text = "Load EN")
+                }
             }
         }
     }
